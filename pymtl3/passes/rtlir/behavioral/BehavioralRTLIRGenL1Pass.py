@@ -430,6 +430,17 @@ class BehavioralRTLIRGeneratorL1( ast.NodeVisitor ):
     raise PyMTLSyntaxError( s.blk, node,
       f'Temporary variable {node.id} is not supported at L1!' )
 
+  def visit_Constant( s, node ):
+    # Python 3.8+ parses all literals as ast.Constant; Python 3.14 no longer
+    # dispatches them to visit_Num/visit_Str.
+    if isinstance( node.value, str ):
+      return s.visit_Str( node )
+    if isinstance( node.value, (int, float, complex) ) and not isinstance( node.value, bool ):
+      ret = bir.Number( node.value )
+      ret.ast = node
+      return ret
+    return s.generic_visit( node )
+
   def visit_Num( s, node ):
     ret = bir.Number( node.n )
     ret.ast = node
@@ -643,6 +654,12 @@ class ConstantExtractor( ast.NodeVisitor ):
     else:
       obj = None
     return obj
+
+  def visit_Constant( s, node ):
+    # Python 3.14 no longer dispatches ast.Constant to visit_Num
+    if isinstance( node.value, (int, float, complex) ) and not isinstance( node.value, bool ):
+      return node.value
+    return s.generic_visit( node )
 
   def visit_Num( s, node ):
     return node.n

@@ -49,8 +49,10 @@ Author : Yanghui Ou, Shunning Jiang
   Date : Oct 19, 2019
 """
 import functools
+import inspect
 import keyword
 import operator
+import sys
 import types
 import warnings
 
@@ -593,7 +595,12 @@ def _process_class( cls, add_init=True, add_str=True, add_repr=True,
                     add_hash=True ):
 
   # Get annotations of the class
-  cls_annotations = cls.__dict__.get('__annotations__', {})
+  # Python 3.14 evaluates annotations lazily (PEP 649), so they are not
+  # necessarily in the class __dict__ yet.
+  if sys.version_info >= (3, 10):
+    cls_annotations = inspect.get_annotations( cls )
+  else:
+    cls_annotations = cls.__dict__.get('__annotations__', {})
   if not cls_annotations:
     raise AttributeError( "No field is declared in the bit struct definition.\n"
                          f"Suggestion: check the definition of {cls.__name__} to"

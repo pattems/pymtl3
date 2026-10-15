@@ -15,6 +15,7 @@ Date   : Jan 29, 2020
 import ast
 import inspect
 import linecache
+import sys
 from collections import defaultdict
 
 from pymtl3.datatypes import Bits, is_bitstruct_inst
@@ -44,6 +45,15 @@ from .errors import (
 from .NamedObject import NamedObject
 from .Placeholder import Placeholder
 
+
+# Python 3.9+ uses the index expression itself as Subscript.slice;
+# ast.Index is deprecated there.
+if sys.version_info >= (3, 9):
+  def _index_slice( node ):
+    return node
+else:
+  def _index_slice( node ):
+    return ast.Index( value=node )
 
 def connect( o1, o2 ):
   host, o1_connectable, o2_connectable = _connect_check( o1, o2, internal=False )
@@ -145,12 +155,10 @@ class ComponentLevel3( ComponentLevel2 ):
                     ctx=ast.Load(),
                     lineno=1+idx, col_offset=5+len(var),
                   ),
-                  slice=ast.Index(
-                    value=ast.Num(
-                      n=idx,
-                      lineno=1+idx, col_offset=19+len(var),
-                    ),
-                  ),
+                  slice=_index_slice( ast.Constant(
+                    value=idx,
+                    lineno=1+idx, col_offset=19+len(var),
+                  ) ),
                   ctx=ast.Load(),
                   lineno=1+idx, col_offset=5+len(var),
                 ),
